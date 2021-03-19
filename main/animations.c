@@ -4,7 +4,6 @@
 #include <string.h>
 #include "led_strip.h"
 
-TaskHandle_t animation_task = NULL;
 
 void animation_snake(void *arg) {
   AnimationParameters *params = (struct AnimationParameters*) arg;
@@ -108,9 +107,9 @@ void animation_set_solid_color(struct led_strip_t *led_strip, float power, uint8
 
 void animation_start(Animation anim, AnimationParameters* params) {
 
-  if (animation_task != NULL) {
-    vTaskDelete(animation_task);
-    animation_task = NULL;
+  if (params->animation_task != NULL) {
+    vTaskDelete(params->animation_task);
+    params->animation_task = NULL;
   }
 
   switch (anim) {
@@ -118,16 +117,16 @@ void animation_start(Animation anim, AnimationParameters* params) {
     animation_set_solid_color(params->led_strip, 1, 0xFF, 0, 0);
     break;
   case SNAKE:
-    xTaskCreate(animation_snake, "animation_snake", 1024, params, ESP_TASK_MAIN_PRIO + 1, &animation_task);
+    xTaskCreate(animation_snake, "animation_snake", 1024, params, ESP_TASK_MAIN_PRIO + 1, &params->animation_task);
     break;
   case PULSE:
-    xTaskCreate(animation_pulse, "animation_pulse", 1024, params, ESP_TASK_MAIN_PRIO + 1, &animation_task);
+    xTaskCreate(animation_pulse, "animation_pulse", 1024, params, ESP_TASK_MAIN_PRIO + 1, &params->animation_task);
     break;
   case CHRISTMAS:
-    xTaskCreate(animation_christmas, "animation_christmas", 1024, params, ESP_TASK_MAIN_PRIO + 1, &animation_task);
+    xTaskCreate(animation_christmas, "animation_christmas", 1024, params, ESP_TASK_MAIN_PRIO + 1, &params->animation_task);
     break;
   case CHRISTMAS2:
-    xTaskCreate(animation_christmas_2, "animation_christmas_2", 1024, params, ESP_TASK_MAIN_PRIO + 1, &animation_task);
+    xTaskCreate(animation_christmas_2, "animation_christmas_2", 1024, params, ESP_TASK_MAIN_PRIO + 1, &params->animation_task);
     break;
   default:
     animation_set_solid_color(params->led_strip, 0, 0, 0, 0);

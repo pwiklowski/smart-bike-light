@@ -30,6 +30,7 @@ typedef struct {
   uint8_t green;
   uint8_t blue;
   uint8_t mode;
+  TaskHandle_t animation_task;
 } AnimationParameters;
 
 
