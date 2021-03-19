@@ -17,7 +17,9 @@
 ****************************************************************************/
 
 
- #include "freertos/FreeRTOS.h"
+ #include "service_front_light.h"
+
+#include "freertos/FreeRTOS.h"
  #include "freertos/task.h"
  #include "freertos/event_groups.h"
  #include "esp_system.h"
@@ -28,7 +30,6 @@
 #include "esp_gap_ble_api.h"
 #include "esp_gatts_api.h"
 #include "esp_bt_main.h"
-#include "gatts_table_creat_demo.h"
 #include "esp_gatt_common_api.h"
 
 #include "light.h"
