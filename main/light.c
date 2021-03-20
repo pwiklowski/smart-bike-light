@@ -12,10 +12,13 @@ AnimationParameters back_params;
 
 #define LIGHT_TAG "LIGHT"
 
-#define SERVICE_UUID_LIGHT_FRONT      0x00FF
-#define CHAR_UUID_LIGHT_TOGGLE        0xFF01
-#define CHAR_UUID_LIGHT_MODE          0xFF02
-#define CHAR_UUID_LIGHT_SETTING       0xFF03
+#define CHAR_UUID_FRONT_LIGHT_TOGGLE        0xFF01
+#define CHAR_UUID_FRONT_LIGHT_MODE          0xFF02
+#define CHAR_UUID_FRONT_LIGHT_SETTING       0xFF03
+
+#define CHAR_UUID_BACK_LIGHT_TOGGLE        0xFF04
+#define CHAR_UUID_BACK_LIGHT_MODE          0xFF05
+#define CHAR_UUID_BACK_LIGHT_SETTING       0xFF06
 
 #define LED_STRIP_LENGTH 5
 #define LED_STRIP_RMT_INTR_NUM 19U
@@ -74,7 +77,7 @@ void light_init() {
 void light_set_value(uint16_t char_uuid, uint8_t* data, uint16_t len) {
   ESP_LOGI(LIGHT_TAG, "light_set_value param=%x value=%d len=%d", char_uuid, data[0], len);
 
-  if (char_uuid == CHAR_UUID_LIGHT_TOGGLE) {
+  if (char_uuid == CHAR_UUID_FRONT_LIGHT_TOGGLE) {
     if (data[0] == 0) {
       animation_start(OFF, &front_params);
     } else {
@@ -82,8 +85,40 @@ void light_set_value(uint16_t char_uuid, uint8_t* data, uint16_t len) {
     }
   }
 
-  if (char_uuid == CHAR_UUID_LIGHT_MODE) {
+  if (char_uuid == CHAR_UUID_BACK_LIGHT_TOGGLE) {
+    if (data[0] == 0) {
+      animation_start(OFF, &back_params);
+    } else {
+      animation_start(back_params.mode, &back_params);
+    }
+  }
+
+  if (char_uuid == CHAR_UUID_FRONT_LIGHT_MODE) {
     front_params.mode = data[0];
+      animation_start(front_params.mode, &front_params);
+  }
+
+  if (char_uuid == CHAR_UUID_BACK_LIGHT_MODE) {
+    back_params.mode = data[0];
+    animation_start(back_params.mode, &back_params);
+  }
+
+  if (char_uuid == CHAR_UUID_FRONT_LIGHT_SETTING) {
+    front_params.power = data[0]/100.0;
+    front_params.red = data[1];
+    front_params.green = data[2];
+    front_params.blue = data[3];
+
+    animation_start(front_params.mode, &front_params);
+  }
+
+  if (char_uuid == CHAR_UUID_BACK_LIGHT_SETTING) {
+    back_params.power = data[0]/100.0;
+    back_params.red = data[1];
+    back_params.green = data[2];
+    back_params.blue = data[3];
+
+    animation_start(back_params.mode, &back_params);
   }
 
   // TODO store it to flash

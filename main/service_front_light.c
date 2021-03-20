@@ -17,9 +17,7 @@
 ****************************************************************************/
 
 
- #include "service_front_light.h"
-
-#include "freertos/FreeRTOS.h"
+ #include "freertos/FreeRTOS.h"
  #include "freertos/task.h"
  #include "freertos/event_groups.h"
  #include "esp_system.h"
@@ -30,6 +28,7 @@
 #include "esp_gap_ble_api.h"
 #include "esp_gatts_api.h"
 #include "esp_bt_main.h"
+#include "service_front_light.h"
 #include "esp_gatt_common_api.h"
 
 #include "light.h"
@@ -54,7 +53,7 @@
 
 static uint8_t adv_config_done       = 0;
 
-uint16_t heart_rate_handle_table[HRS_IDX_NB];
+uint16_t handle_table[HRS_IDX_NB];
 
 typedef struct {
     uint8_t                 *prepare_buf;
@@ -63,28 +62,6 @@ typedef struct {
 
 static prepare_type_env_t prepare_write_env;
 
-#define CONFIG_SET_RAW_ADV_DATA
-#ifdef CONFIG_SET_RAW_ADV_DATA
-static uint8_t raw_adv_data[] = {
-        /* flags */
-        0x02, 0x01, 0x06,
-        /* tx power*/
-        0x02, 0x0a, 0xeb,
-        /* service uuid */
-        0x03, 0x03, 0xFF, 0x00,
-        /* device name */
-        0x0f, 0x09, 'E', 'S', 'P', '_', 'G', 'A', 'T', 'T', 'S', '_', 'D','E', 'M', 'O'
-};
-static uint8_t raw_scan_rsp_data[] = {
-        /* flags */
-        0x02, 0x01, 0x06,
-        /* tx power */
-        0x02, 0x0a, 0xeb,
-        /* service uuid */
-        0x03, 0x03, 0xFF,0x00
-};
-
-#else
 static uint8_t service_uuid[16] = {
     /* LSB <--------------------------------------------------------------------------------> MSB */
     //first uuid, 16bit, [12],[13] is the value
@@ -124,7 +101,6 @@ static esp_ble_adv_data_t scan_rsp_data = {
     .p_service_uuid      = service_uuid,
     .flag = (ESP_BLE_ADV_FLAG_GEN_DISC | ESP_BLE_ADV_FLAG_BREDR_NOT_SPT),
 };
-#endif /* CONFIG_SET_RAW_ADV_DATA */
 
 static esp_ble_adv_params_t adv_params = {
     .adv_int_min         = 0x20,
@@ -162,10 +138,16 @@ static struct gatts_profile_inst heart_rate_profile_tab[PROFILE_NUM] = {
 };
 
 /* Service */
-static const uint16_t GATTS_SERVICE_UUID_LIGHT_FRONT   = 0x00FF;
-static const uint16_t GATTS_CHAR_UUID_LIGHT_TOGGLE     = 0xFF01;
-static const uint16_t GATTS_CHAR_UUID_LIGHT_MODE       = 0xFF02;
-static const uint16_t GATTS_CHAR_UUID_LIGHT_SETTING    = 0xFF03;
+static const uint16_t GATTS_SERVICE_UUID_LIGHT   = 0x00FF;
+
+static const uint16_t GATTS_CHAR_UUID_FRONT_LIGHT_TOGGLE     = 0xFF01;
+static const uint16_t GATTS_CHAR_UUID_FRONT_LIGHT_MODE       = 0xFF02;
+static const uint16_t GATTS_CHAR_UUID_FRONT_LIGHT_SETTING    = 0xFF03;
+
+static const uint16_t GATTS_CHAR_UUID_BACK_LIGHT_TOGGLE     = 0xFF04;
+static const uint16_t GATTS_CHAR_UUID_BACK_LIGHT_MODE       = 0xFF05;
+static const uint16_t GATTS_CHAR_UUID_BACK_LIGHT_SETTING    = 0xFF06;
+
 
 static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
@@ -180,36 +162,66 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
     // Service Declaration
     [IDX_SVC]        =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid, ESP_GATT_PERM_READ,
-      sizeof(uint16_t), sizeof(GATTS_SERVICE_UUID_LIGHT_FRONT), (uint8_t *)&GATTS_SERVICE_UUID_LIGHT_FRONT}},
+      sizeof(uint16_t), sizeof(GATTS_SERVICE_UUID_LIGHT), (uint8_t *)&GATTS_SERVICE_UUID_LIGHT}},
 
     /* Characteristic Declaration */
-    [IDX_CHAR_LIGHT_TOGGLE]     =
+    [IDX_CHAR_FRONT_LIGHT_TOGGLE]     =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
       CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_rw}},
 
     /* Characteristic Value */
-    [IDX_CHAR_VAL_LIGHT_TOGGLE] =
-    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_LIGHT_TOGGLE, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+    [IDX_CHAR_VAL_FRONT_LIGHT_TOGGLE] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_FRONT_LIGHT_TOGGLE, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
       GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
 
     /* Characteristic Declaration */
-    [IDX_CHAR_LIGHT_MODE]      =
+    [IDX_CHAR_FRONT_LIGHT_MODE]      =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
       CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_rw}},
 
     /* Characteristic Value */
-    [IDX_CHAR_VAL_LIGHT_MODE]  =
-    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_LIGHT_MODE, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+    [IDX_CHAR_VAL_FRONT_LIGHT_MODE]  =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_FRONT_LIGHT_MODE, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
       GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
 
     /* Characteristic Declaration */
-    [IDX_CHAR_LIGHT_SETTING]      =
+    [IDX_CHAR_FRONT_LIGHT_SETTING]      =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
       CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_rw}},
 
     /* Characteristic Value */
-    [IDX_CHAR_VAL_LIGHT_SETTING]  =
-    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_LIGHT_SETTING, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+    [IDX_CHAR_VAL_FRONT_LIGHT_SETTING]  =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_FRONT_LIGHT_SETTING, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+
+    /* Characteristic Declaration */
+    [IDX_CHAR_BACK_LIGHT_TOGGLE]     =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+      CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_rw}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_VAL_BACK_LIGHT_TOGGLE] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_BACK_LIGHT_TOGGLE, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+
+    /* Characteristic Declaration */
+    [IDX_CHAR_BACK_LIGHT_MODE]      =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+      CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_rw}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_VAL_BACK_LIGHT_MODE]  =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_BACK_LIGHT_MODE, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+
+    /* Characteristic Declaration */
+    [IDX_CHAR_BACK_LIGHT_SETTING]      =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+      CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_rw}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_VAL_BACK_LIGHT_SETTING]  =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_BACK_LIGHT_SETTING, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
       GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
 
 };
@@ -379,17 +391,30 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             if (!param->write.is_prep){
                 ESP_LOGI(GATTS_TABLE_TAG, "GATT_WRITE_EVT, handle = %d, value len = %d, value :", param->write.handle, param->write.len);
 
-                if (heart_rate_handle_table[IDX_CHAR_VAL_LIGHT_TOGGLE] == param->write.handle) {
-                  light_set_value(GATTS_CHAR_UUID_LIGHT_TOGGLE, param->write.value, param->write.len);
+                if (handle_table[IDX_CHAR_VAL_FRONT_LIGHT_TOGGLE] == param->write.handle) {
+                  light_set_value(GATTS_CHAR_UUID_FRONT_LIGHT_TOGGLE, param->write.value, param->write.len);
                 }
 
-                if (heart_rate_handle_table[IDX_CHAR_VAL_LIGHT_MODE] == param->write.handle) {
-                  light_set_value(GATTS_CHAR_UUID_LIGHT_MODE, param->write.value, param->write.len);
+                if (handle_table[IDX_CHAR_VAL_FRONT_LIGHT_MODE] == param->write.handle) {
+                  light_set_value(GATTS_CHAR_UUID_FRONT_LIGHT_MODE, param->write.value, param->write.len);
                 }
 
-                if (heart_rate_handle_table[IDX_CHAR_VAL_LIGHT_SETTING] == param->write.handle) {
-                  light_set_value(GATTS_CHAR_UUID_LIGHT_SETTING,  param->write.value, param->write.len);
+                if (handle_table[IDX_CHAR_VAL_FRONT_LIGHT_SETTING] == param->write.handle) {
+                  light_set_value(GATTS_CHAR_UUID_FRONT_LIGHT_SETTING,  param->write.value, param->write.len);
                 }
+
+                if (handle_table[IDX_CHAR_VAL_BACK_LIGHT_TOGGLE] == param->write.handle) {
+                  light_set_value(GATTS_CHAR_UUID_BACK_LIGHT_TOGGLE, param->write.value, param->write.len);
+                }
+
+                if (handle_table[IDX_CHAR_VAL_BACK_LIGHT_MODE] == param->write.handle) {
+                  light_set_value(GATTS_CHAR_UUID_BACK_LIGHT_MODE, param->write.value, param->write.len);
+                }
+
+                if (handle_table[IDX_CHAR_VAL_BACK_LIGHT_SETTING] == param->write.handle) {
+                  light_set_value(GATTS_CHAR_UUID_BACK_LIGHT_SETTING,  param->write.value, param->write.len);
+                }
+
 
                 /* send response when param->write.need_rsp is true*/
                 if (param->write.need_rsp){
@@ -441,8 +466,8 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             }
             else {
                 ESP_LOGI(GATTS_TABLE_TAG, "create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
-                memcpy(heart_rate_handle_table, param->add_attr_tab.handles, sizeof(heart_rate_handle_table));
-                esp_ble_gatts_start_service(heart_rate_handle_table[IDX_SVC]);
+                memcpy(handle_table, param->add_attr_tab.handles, sizeof(handle_table));
+                esp_ble_gatts_start_service(handle_table[IDX_SVC]);
             }
             break;
         }
