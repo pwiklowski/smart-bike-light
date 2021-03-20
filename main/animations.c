@@ -114,7 +114,7 @@ void animation_start(Animation anim, AnimationParameters* params) {
 
   switch (anim) {
   case SOLID:
-    animation_set_solid_color(params->led_strip, 1, 0xFF, 0, 0);
+    animation_set_solid_color(params->led_strip, params->power, params->red, params->green, params->blue);
     break;
   case SNAKE:
     xTaskCreate(animation_snake, "animation_snake", 1024, params, ESP_TASK_MAIN_PRIO + 1, &params->animation_task);
