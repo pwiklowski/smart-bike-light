@@ -19,8 +19,7 @@ typedef enum {
   CHRISTMAS,
   CHRISTMAS2,
 
-  OFF,
-  UNKNOWN
+  OFF
 } Animation;
 
 typedef struct {
