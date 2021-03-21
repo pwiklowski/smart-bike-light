@@ -107,7 +107,7 @@ void animation_set_solid_color(struct led_strip_t *led_strip, float power, uint8
 }
 
 void animation_start(Animation anim, AnimationParameters* params) {
-  ESP_LOGI("ANIMATION", "animation_start %d %f %d %d %d", params->mode, params->power, params->red, params->green , params->blue);
+  ESP_LOGI("ANIMATION", "animation_start %d %d %d %d %d", params->mode, params->power, params->red, params->green , params->blue);
 
   if (params->animation_task != NULL) {
     vTaskDelete(params->animation_task);
@@ -116,7 +116,7 @@ void animation_start(Animation anim, AnimationParameters* params) {
 
   switch (anim) {
   case SOLID:
-    animation_set_solid_color(params->led_strip, params->power, params->red, params->green, params->blue);
+    animation_set_solid_color(params->led_strip, params->power/100, params->red, params->green, params->blue);
     break;
   case SNAKE:
     xTaskCreate(animation_snake, "animation_snake", 1024, params, ESP_TASK_MAIN_PRIO + 1, &params->animation_task);

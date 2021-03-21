@@ -24,7 +24,7 @@ typedef enum {
 
 typedef struct {
   struct led_strip_t* led_strip;
-  float power;
+  uint8_t power;
   uint8_t red;
   uint8_t green;
   uint8_t blue;

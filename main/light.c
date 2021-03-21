@@ -133,7 +133,7 @@ void light_set_value(uint16_t char_uuid, uint8_t* data, uint16_t len) {
   }
 
   if (char_uuid == CHAR_UUID_FRONT_LIGHT_SETTING) {
-    app_data.front_params.power = data[0]/100.0;
+    app_data.front_params.power = data[0];
     app_data.front_params.red = data[1];
     app_data.front_params.green = data[2];
     app_data.front_params.blue = data[3];
@@ -142,7 +142,7 @@ void light_set_value(uint16_t char_uuid, uint8_t* data, uint16_t len) {
   }
 
   if (char_uuid == CHAR_UUID_BACK_LIGHT_SETTING) {
-    app_data.back_params.power = data[0]/100.0;
+    app_data.back_params.power = data[0];
     app_data.back_params.red = data[1];
     app_data.back_params.green = data[2];
     app_data.back_params.blue = data[3];
