@@ -99,6 +99,10 @@ void light_init() {
   app_data.back_params.led_strip = &led_strip_back;
   app_data.back_params.animation_task = NULL;
 
+  //start in OFF mode
+  app_data.front_params.toggle = 0;
+  app_data.back_params.toggle = 0;
+
   animation_start(OFF, &app_data.front_params);
   animation_start(OFF, &app_data.back_params);
 }
@@ -107,6 +111,7 @@ void light_set_value(uint16_t char_uuid, uint8_t* data, uint16_t len) {
   ESP_LOGI(LIGHT_TAG, "light_set_value param=%x value=%d len=%d", char_uuid, data[0], len);
 
   if (char_uuid == CHAR_UUID_FRONT_LIGHT_TOGGLE) {
+    app_data.front_params.toggle = data[0];
     if (data[0] == 0) {
       animation_start(OFF, &app_data.front_params);
     } else {
@@ -115,6 +120,7 @@ void light_set_value(uint16_t char_uuid, uint8_t* data, uint16_t len) {
   }
 
   if (char_uuid == CHAR_UUID_BACK_LIGHT_TOGGLE) {
+    app_data.back_params.toggle = data[0];
     if (data[0] == 0) {
       animation_start(OFF, &app_data.back_params);
     } else {

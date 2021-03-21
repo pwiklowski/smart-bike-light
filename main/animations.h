@@ -24,11 +24,15 @@ typedef enum {
 
 typedef struct {
   struct led_strip_t* led_strip;
+  uint8_t toggle;
+
+  uint8_t mode;
+
   uint8_t power;
   uint8_t red;
   uint8_t green;
   uint8_t blue;
-  uint8_t mode;
+
   TaskHandle_t animation_task;
 } AnimationParameters;
 

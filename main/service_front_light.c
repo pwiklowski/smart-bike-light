@@ -33,6 +33,9 @@
 
 #include "light.h"
 
+
+extern AppData app_data;
+
 #define GATTS_TABLE_TAG "GATTS_TABLE_DEMO"
 
 #define PROFILE_NUM                 1
@@ -153,9 +156,6 @@ static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
 static const uint8_t char_prop_rw   = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ;
 
-static const uint8_t char_value[4]                 = {0x11, 0x22, 0x33, 0x44};
-
-
 /* Full Database Description - Used to add attributes into the database */
 static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
 {
@@ -172,7 +172,7 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
     /* Characteristic Value */
     [IDX_CHAR_VAL_FRONT_LIGHT_TOGGLE] =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_FRONT_LIGHT_TOGGLE, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(app_data.front_params.toggle), &app_data.front_params.toggle}},
 
     /* Characteristic Declaration */
     [IDX_CHAR_FRONT_LIGHT_MODE]      =
@@ -182,7 +182,7 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
     /* Characteristic Value */
     [IDX_CHAR_VAL_FRONT_LIGHT_MODE]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_FRONT_LIGHT_MODE, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(app_data.front_params.mode), &app_data.front_params.mode}},
 
     /* Characteristic Declaration */
     [IDX_CHAR_FRONT_LIGHT_SETTING]      =
@@ -192,7 +192,7 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
     /* Characteristic Value */
     [IDX_CHAR_VAL_FRONT_LIGHT_SETTING]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_FRONT_LIGHT_SETTING, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+      GATTS_DEMO_CHAR_VAL_LEN_MAX, 4, &app_data.front_params.power}},
 
     /* Characteristic Declaration */
     [IDX_CHAR_BACK_LIGHT_TOGGLE]     =
@@ -202,7 +202,7 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
     /* Characteristic Value */
     [IDX_CHAR_VAL_BACK_LIGHT_TOGGLE] =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_BACK_LIGHT_TOGGLE, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(app_data.back_params.toggle), &app_data.back_params.toggle}},
 
     /* Characteristic Declaration */
     [IDX_CHAR_BACK_LIGHT_MODE]      =
@@ -212,7 +212,7 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
     /* Characteristic Value */
     [IDX_CHAR_VAL_BACK_LIGHT_MODE]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_BACK_LIGHT_MODE, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(app_data.back_params.mode), &app_data.back_params.mode}},
 
     /* Characteristic Declaration */
     [IDX_CHAR_BACK_LIGHT_SETTING]      =
@@ -222,7 +222,7 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
     /* Characteristic Value */
     [IDX_CHAR_VAL_BACK_LIGHT_SETTING]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_BACK_LIGHT_SETTING, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
+      GATTS_DEMO_CHAR_VAL_LEN_MAX, 4, &app_data.back_params.power}},
 
 };
 
@@ -526,6 +526,8 @@ void app_main(void)
 
     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT));
 
+    light_init();
+
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     ret = esp_bt_controller_init(&bt_cfg);
     if (ret) {
@@ -573,6 +575,4 @@ void app_main(void)
     if (local_mtu_ret){
         ESP_LOGE(GATTS_TABLE_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
-
-    light_init();
 }

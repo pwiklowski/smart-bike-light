@@ -16,7 +16,7 @@ void animation_snake(void *arg) {
         uint8_t g = params->green;
         uint8_t b = params->blue;
 
-        float p = i == j ? params->power : 0;
+        float p = i == j ? params->power/100.0: 0;
 
         led_strip_set_pixel_rgb(params->led_strip, i, p * r, p * g, p * b);
       }
@@ -37,7 +37,7 @@ void animation_pulse(void *arg) {
         uint8_t g = params->green;
         uint8_t b = params->blue;
 
-        float p = params->power * ((float) step / steps);
+        float p = params->power/100.0 * ((float) step / steps);
 
         led_strip_set_pixel_rgb(params->led_strip, i, p * r, p * g, p * b);
       }
@@ -50,7 +50,7 @@ void animation_pulse(void *arg) {
         uint8_t g = params->green;
         uint8_t b = params->blue;
 
-        float p = params->power * ((float) step / steps);
+        float p = params->power/100.0 * ((float) step / steps);
 
         led_strip_set_pixel_rgb(params->led_strip, i, p * r, p * g, p * b);
       }
@@ -69,7 +69,7 @@ void animation_christmas(void *arg) {
         uint8_t g = (i + j) % 3 == 1 ? 255 : 0;
         uint8_t b = (i + j) % 3 == 2 ? 255 : 0;
 
-        float p = params->power;
+        float p = params->power/100.0;
 
         led_strip_set_pixel_rgb(params->led_strip, i, p * r, p * g, p * b);
       }
@@ -89,7 +89,7 @@ void animation_christmas_2(void *arg) {
         uint8_t g = (i + j) % 5 == 0 ? 0 : 255;
         uint8_t b = 0;
 
-        float p = params->power;
+        float p = params->power/100.0;
 
         led_strip_set_pixel_rgb(params->led_strip, i, p * r, p * g, p * b);
       }
@@ -116,7 +116,7 @@ void animation_start(Animation anim, AnimationParameters* params) {
 
   switch (anim) {
   case SOLID:
-    animation_set_solid_color(params->led_strip, params->power/100, params->red, params->green, params->blue);
+    animation_set_solid_color(params->led_strip, params->power/100.0, params->red, params->green, params->blue);
     break;
   case SNAKE:
     xTaskCreate(animation_snake, "animation_snake", 1024, params, ESP_TASK_MAIN_PRIO + 1, &params->animation_task);
