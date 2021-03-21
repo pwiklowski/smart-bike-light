@@ -3,6 +3,7 @@
 #include "esp_task.h"
 #include <string.h>
 #include "led_strip.h"
+#include "esp_log.h"
 
 
 void animation_snake(void *arg) {
@@ -106,6 +107,7 @@ void animation_set_solid_color(struct led_strip_t *led_strip, float power, uint8
 }
 
 void animation_start(Animation anim, AnimationParameters* params) {
+  ESP_LOGI("ANIMATION", "animation_start %d %f %d %d %d", params->mode, params->power, params->red, params->green , params->blue);
 
   if (params->animation_task != NULL) {
     vTaskDelete(params->animation_task);
