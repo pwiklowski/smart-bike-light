@@ -12,10 +12,13 @@
 #include "esp_gatts_api.h"
 #include "service_battery.h"
 #include "gatt.h"
+#include "main.h"
 
 static char* GATTS_TABLE_TAG = "BatteryService";
 
 extern struct gatts_profile_inst gl_profile_tab[PROFILE_NUM];
+extern AppData app_data;
+
 
 #define GATTS_DEMO_CHAR_VAL_LEN_MAX 500
 #define PREPARE_BUF_MAX_SIZE 1024
@@ -73,22 +76,20 @@ esp_ble_adv_data_t battery_scan_rsp_data = {
 
 extern esp_ble_adv_params_t adv_params;
 
-static const uint16_t GATTS_SERVICE_UUID_BATTERY = 0x00FE;
+static const uint16_t GATTS_SERVICE_UUID_BATTERY = 0x180F;
 
-static const uint16_t GATTS_CHAR_UUID_VOLTAGE = 0xFE01;
+static const uint16_t GATTS_CHAR_UUID_VOLTAGE = 0x2A19;
 
 static const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE;
 static const uint8_t char_prop_read = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 
 static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
-static const uint8_t config_descriptor[2] = {0x00, 0x00};
+static const uint8_t config_descriptor[2] = {0x29, 0x01};
 
-
-static uint8_t battery;
 
 /* Full Database Description - Used to add attributes into the database */
-static const esp_gatts_attr_db_t gatt_db[BATTERY_IDX_NB] = {
+const esp_gatts_attr_db_t gatt_db[BATTERY_IDX_NB] = {
     // Service Declaration
     [IDX_SVC_BATTERY] = {{ESP_GATT_AUTO_RSP},
                          {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid, ESP_GATT_PERM_READ, sizeof(uint16_t),
@@ -102,7 +103,7 @@ static const esp_gatts_attr_db_t gatt_db[BATTERY_IDX_NB] = {
     [IDX_CHAR_VAL_VOLTAGE] = {{ESP_GATT_AUTO_RSP},
                               {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_VOLTAGE,
                                ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, GATTS_DEMO_CHAR_VAL_LEN_MAX,
-                               sizeof(uint16_t), (uint8_t*)&battery }},
+                               sizeof(uint8_t), (uint8_t*)&app_data.battery_level }},
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_CFG_VOLTAGE] = {{ESP_GATT_AUTO_RSP},
                               {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid,
@@ -162,15 +163,9 @@ void gatts_battery_service_event_handler(esp_gatts_cb_event_t event, esp_gatt_if
       battery_notification_table[index] = descr_value;
       ESP_LOGI(GATTS_TABLE_TAG, "notify enable %d %d %d ", index, param->write.handle, descr_value);
 
-//      if (index == IDX_CHAR_CFG_VOLTAGE) {
-//        battery_update_value(state.voltage.value, IDX_CHAR_VAL_VOLTAGE, true);
-//      } else if (index == IDX_CHAR_CFG_CURRENT) {
-//        battery_update_value(state.current.value, IDX_CHAR_VAL_CURRENT, true);
-//      } else if (index == IDX_CHAR_CFG_USED_ENERGY) {
-//        battery_update_value(state.used_energy.value, IDX_CHAR_VAL_USED_ENERGY, true);
-//      } else if (index == IDX_CHAR_CFG_TOTAL_ENERGY) {
-//        battery_update_value(state.total_energy.value, IDX_CHAR_VAL_TOTAL_ENERGY, true);
-//      }
+      if (index == IDX_CHAR_CFG_VOLTAGE) {
+        battery_update_value(app_data.battery_level, IDX_CHAR_VAL_VOLTAGE);
+      }
     }
     break;
   case ESP_GATTS_EXEC_WRITE_EVT:
@@ -223,16 +218,12 @@ void gatts_battery_service_event_handler(esp_gatts_cb_event_t event, esp_gatt_if
   }
 }
 
-//void battery_update_value(double value, uint16_t characteristic_index, bool force_notify) {
-//  bool was_changed = false;
-//
-//
-//
-//  esp_ble_gatts_set_attr_value(battery_handle_table[characteristic_index], sizeof(characteristic.bytes), (uint8_t *)characteristic.bytes);
-//
-//  if (battery_notification_table[characteristic_index + 1] == 0x0001 && (was_changed || force_notify)) {
-//
-//    esp_ble_gatts_send_indicate(battery_profile_tab.gatts_if, connection_id, battery_handle_table[characteristic_index],
-//                                sizeof(characteristic.bytes), (uint8_t *)characteristic.bytes, false);
-//  }
-//}
+void battery_update_value(uint8_t value, uint16_t characteristic_index) {
+  app_data.battery_level = value;
+  esp_ble_gatts_set_attr_value(battery_handle_table[characteristic_index], sizeof(value), (uint8_t *)&value);
+
+  if (battery_notification_table[characteristic_index + 1] == 0x0001) {
+    esp_ble_gatts_send_indicate(gl_profile_tab[SERVICE_BATTERY_ID].gatts_if, connection_id, battery_handle_table[characteristic_index],
+        sizeof(app_data.battery_level), (uint8_t *)&app_data.battery_level, false);
+  }
+}

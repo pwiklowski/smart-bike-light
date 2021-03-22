@@ -1,3 +1,4 @@
+#include "main.h"
 #include "nvs_flash.h"
 #include "esp_system.h"
 
@@ -6,6 +7,8 @@
 
 #include "service_battery.h"
 
+
+AppData app_data;
 
 void app_main(void)
 {

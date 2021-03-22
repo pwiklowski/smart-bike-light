@@ -10,9 +10,10 @@
 #include "driver/gpio.h"
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
+#include "service_battery.h"
 
 #define DEFAULT_VREF    1100        //Use adc2_vref_to_gpio() to obtain a better estimate
-#define NO_OF_SAMPLES   64          //Multisampling
+#define NO_OF_SAMPLES   128          //Multisampling
 
 static esp_adc_cal_characteristics_t *adc_chars;
 static const adc_channel_t channel = ADC_CHANNEL_6;     //GPIO34 if ADC1, GPIO14 if ADC2
@@ -21,6 +22,9 @@ static const adc_atten_t atten = ADC_ATTEN_DB_0;
 static const adc_unit_t unit = ADC_UNIT_1;
 
 static const float DIVIDER = 1.0+3.92/1.0; //TODO add calibration data
+
+#define MAX_VOLTAGE 4200.0f
+#define MIN_VOLTAGE 3000.0f
 
 void battery_init() {
   if (unit == ADC_UNIT_1) {
@@ -35,7 +39,7 @@ void battery_init() {
   esp_adc_cal_value_t val_type = esp_adc_cal_characterize(unit, atten, width, DEFAULT_VREF, adc_chars);
 }
 
-void battery_read() {
+float battery_read() {
   uint32_t adc_reading = 0;
   for (int i = 0; i < NO_OF_SAMPLES; i++) {
       if (unit == ADC_UNIT_1) {
@@ -48,15 +52,30 @@ void battery_read() {
   }
   adc_reading /= NO_OF_SAMPLES;
   //Convert adc_reading to voltage in mV
-  float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
-  printf("Raw: %d\tVoltage: %fmV\n", adc_reading, voltage* DIVIDER);
+  float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars) * DIVIDER;
+  printf("Raw: %d\tVoltage: %fmV\n", adc_reading, voltage);
+  return voltage;
 }
 
+uint8_t battery_get_percentage() {
+  float voltage = battery_read();
+
+  float percentage = (voltage - MIN_VOLTAGE)/ (MAX_VOLTAGE - MIN_VOLTAGE) * 100.0;
+
+  printf("Percentage: %f", percentage);
+
+  if (percentage > 100) percentage = 100;
+  if (percentage < 0) percentage = 0;
+
+  return percentage;
+}
 
 void battery_task(){
   while(1) {
     battery_read();
-    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    battery_update_value(battery_get_percentage(), IDX_CHAR_VAL_VOLTAGE);
+    vTaskDelay(pdMS_TO_TICKS(5000));
   }
 }
 

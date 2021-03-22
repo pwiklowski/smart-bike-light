@@ -14,7 +14,8 @@
 #include "service_front_light.h"
 #include "esp_gatt_common_api.h"
 
-#include "light.h"S
+#include "light.h"
+#include "main.h"
 
 #include "gatt.h"
 

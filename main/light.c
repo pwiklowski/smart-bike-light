@@ -7,8 +7,9 @@
 #include "esp_log.h"
 #include "light.h"
 #include "nvs_flash.h"
+#include "main.h"
 
-AppData app_data;
+extern AppData app_data;
 
 #define LIGHT_TAG "LIGHT"
 #define LIGHT_SETTINGS_KEY "SETTINGS"
