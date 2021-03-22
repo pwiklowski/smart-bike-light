@@ -1,18 +1,9 @@
-/*
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
+#ifndef service_front_light_h
+#define service_front_light_h
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-
-
 
 enum {
     IDX_SVC,
@@ -36,3 +27,7 @@ enum {
 
     HRS_IDX_NB,
 };
+
+void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
+
+#endif
